@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arcan — Dashboard Financeiro v6 — Plano de Contas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;color:#1a1a1a;background:#eef1f7;padding:14px;min-height:100vh}
+.app{background:#fff;border-radius:12px;overflow:hidden;border:1px solid #dde3ef;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1F3864 0%,#2E5FA3 100%);color:#fff;padding:16px 22px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hdr-left h1{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.hdr-left p{font-size:11px;opacity:.72;margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-top:2px}
+.save-badge{font-size:10.5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .2s}
+.save-badge.saved{background:rgba(29,158,117,.35);border-color:rgba(29,158,117,.5)}
+.save-badge.saving{background:rgba(255,193,7,.25);border-color:rgba(255,193,7,.4)}
+.btn-reset{font-size:10.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:5px 10px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .15s}
+.btn-reset:hover{background:rgba(216,90,48,.55)}
+.btn-export{font-size:10.5px;background:rgba(29,158,117,.25);border:1px solid rgba(29,158,117,.45);border-radius:6px;padding:5px 10px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .15s;white-space:nowrap}
+.btn-export:hover{background:rgba(29,158,117,.5)}
+.btn-import{font-size:10.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:6px;padding:5px 10px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .15s;white-space:nowrap}
+.btn-import:hover{background:rgba(55,138,221,.45)}
+/* Import modal */
+.imp-drop{border:2px dashed rgba(46,95,163,.4);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin:12px 0}
+.imp-drop:hover,.imp-drop.drag{border-color:#2E5FA3;background:#edf3fc}
+.imp-drop i{font-size:28px;color:#2E5FA3;display:block;margin-bottom:8px}
+.imp-drop p{font-size:12px;color:#556;line-height:1.5}
+.imp-drop p strong{color:#1F3864}
+.imp-preview{background:#f5f7fc;border:1px solid #dde3ef;border-radius:8px;padding:12px 14px;margin-top:10px;font-size:11.5px;display:none}
+.imp-preview h4{font-size:12px;font-weight:700;color:#1F3864;margin-bottom:8px}
+.imp-preview table{width:100%;border-collapse:collapse}
+.imp-preview td{padding:3px 6px;border-bottom:1px solid #eef1f7}
+.imp-preview td:last-child{text-align:right;font-weight:500;color:#2E5FA3}
+.imp-ok{background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.3);border-radius:8px;padding:10px 12px;font-size:11.5px;color:#085041;display:none;align-items:center;gap:7px;margin-top:8px}
+.imp-err{background:#FAECE7;border:1px solid #f5b8a0;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#4A1B0C;display:none;align-items:center;gap:7px;margin-top:8px}
+
+/* TABS */
+.tabbar{display:flex;border-bottom:1px solid #dde3ef;background:#f7f9fd;overflow-x:auto;padding:0 20px;gap:2px}
+.tbtn{padding:10px 15px;font-size:12px;font-weight:500;border:none;background:none;cursor:pointer;color:#666;border-bottom:2.5px solid transparent;white-space:nowrap;transition:color .13s,background .13s;display:flex;align-items:center;gap:5px}
+.tbtn i{font-size:15px}
+.tbtn.on{color:#1F3864;border-bottom-color:#1F3864;font-weight:600}
+.tbtn:hover:not(.on){color:#1F3864;background:#edf1fb}
+.pnl{display:none;padding:16px 20px 20px}
+.pnl.on{display:block}
+
+/* LABELS */
+.slbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#8892a4;margin:0 0 6px}
+.hint{font-size:10.5px;color:#aab;text-align:right;margin-bottom:5px;display:flex;align-items:center;justify-content:flex-end;gap:4px}
+
+/* TABLE WRAPPER */
+.twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #dde3ef;border-radius:8px;width:100%}
+table{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:auto}
+th{background:#f0f4fc;font-weight:600;font-size:10.5px;padding:8px 10px;text-align:right;border-bottom:1.5px solid #dde3ef;color:#4a5568;white-space:nowrap;min-width:72px}
+th.lc{text-align:left;position:sticky;left:0;z-index:4;background:#f0f4fc;min-width:200px;max-width:240px}
+td{padding:6px 10px;text-align:right;border-bottom:1px solid #eef1f7;white-space:nowrap;min-width:72px}
+td.lc{text-align:left;font-weight:500;position:sticky;left:0;z-index:2;background:#fff;min-width:200px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+tr:hover td{background:#f7f9fd}
+tr:hover td.lc{background:#f7f9fd}
+
+/* ACCORDION */
+.acc-row td{background:#edf1fb;cursor:pointer;font-weight:600;color:#1F3864;border-bottom:1px solid #cdd5ea}
+.acc-row td.lc{background:#edf1fb}
+.acc-row:hover td{background:#dce6f7!important}
+.acc-row:hover td.lc{background:#dce6f7!important}
+.det{}.det.hide{display:none}
+.det td{background:#fff;color:#556;font-weight:400}
+.det td.lc{padding-left:26px;font-weight:400;background:#fff;border-left:3px solid #BDD7EE;font-size:11px;color:#667}
+.sub-row td{font-weight:700;background:#e8edf8!important;border-top:1.5px solid #b0bcd8;color:#1F3864}
+.sub-row td.lc{background:#e8edf8!important;color:#1F3864}
+.grand-row td{font-weight:700;background:#1F3864!important;color:#fff;border-top:2px solid #0d2040;font-size:12px}
+.grand-row td.lc{background:#1F3864!important;color:#fff}
+
+/* HIGHLIGHT */
+.th-hi{background:#0C447C!important;color:#E6F1FB!important;min-width:82px}
+.td-hi{background:#dce8f8;color:#042C53;font-weight:700;min-width:82px}
+.td-pct{background:#f5f3ee;color:#4a4535;font-size:10.5px;min-width:52px}
+
+/* INPUTS */
+input[type=number]{width:78px;border:1px solid #cdd5ea;border-radius:5px;padding:3px 6px;background:#fff;color:#1a1a1a;font-size:11px;text-align:right;transition:border-color .12s,box-shadow .12s}
+input:focus{outline:none;border-color:#2E5FA3;box-shadow:0 0 0 2px rgba(46,95,163,.15)}
+input.just-saved{border-color:#1D9E75;box-shadow:0 0 0 2px rgba(29,158,117,.2)}
+
+/* COLORS */
+.pos{color:#1D9E75;font-weight:600}.neg{color:#D85A30;font-weight:600}
+.bp{background:#E1F5EE;color:#085041;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;white-space:nowrap}
+.bn{background:#FAECE7;color:#4A1B0C;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;white-space:nowrap}
+.chv{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#BDD7EE;margin-right:6px;font-size:10px;color:#1F3864;font-weight:900;transition:transform .2s ease;flex-shrink:0;vertical-align:middle}
+.chv.open{transform:rotate(90deg)}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:14px}
+.kcard{background:#f5f7fc;border-radius:9px;padding:12px 14px;border:1px solid #dde3ef}
+.klbl{font-size:10.5px;color:#7a869a;margin-bottom:3px}
+.kval{font-size:20px;font-weight:700;line-height:1.15}
+.ksub{font-size:10px;color:#9aabb8;margin-top:3px}
+.chart-legend{display:flex;gap:14px;font-size:11px;color:#667;margin-bottom:8px}
+.chart-legend span{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.diag{border-radius:8px;padding:13px 15px;margin-top:12px;font-size:12px;line-height:1.7}
+.dpos{background:#E1F5EE;color:#04342C;border-left:4px solid #1D9E75}
+.dneg{background:#FAECE7;color:#4A1B0C;border-left:4px solid #D85A30}
+
+/* FORMULAS */
+.fblock{background:#f8f8f8;border-radius:8px;padding:11px 14px;margin-bottom:9px;border:1px solid #eee}
+.ftitle{font-weight:700;font-size:12px;margin-bottom:5px;color:#1F3864}
+.fmath{font-family:ui-monospace,'Cascadia Code',monospace;font-size:11px;color:#445;background:#ececec;padding:6px 10px;border-radius:4px;overflow-x:auto;white-space:nowrap}
+.fdesc{font-size:10.5px;color:#778;margin-top:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1F3864;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.green{background:#1D9E75}
+
+/* RESET MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:998;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:12px;padding:24px;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal h3{font-size:14px;font-weight:700;margin-bottom:8px;color:#1F3864}
+.modal p{font-size:12px;color:#556;line-height:1.6;margin-bottom:16px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.btn-cancel{padding:7px 14px;border:1px solid #dde3ef;border-radius:6px;background:#fff;color:#556;cursor:pointer;font-size:12px}
+.btn-confirm{padding:7px 14px;border:none;border-radius:6px;background:#D85A30;color:#fff;cursor:pointer;font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- RESET MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3><i class="ti ti-alert-triangle"></i> Confirmar reset</h3>
+    <p>Isso apagará <strong>todos os dados inseridos</strong> e restaurará os valores originais do modelo. Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmReset()">Sim, resetar tudo</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-bg" id="importBg">
+  <div class="modal" style="max-width:440px">
+    <h3><i class="ti ti-upload"></i> Importar backup (.json)</h3>
+    <p>Selecione o arquivo <code>.json</code> exportado anteriormente pelo painel. Os dados atuais serão substituídos pelos do backup.</p>
+
+    <div class="imp-drop" id="impDrop" onclick="document.getElementById('fileInput').click()"
+         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <i class="ti ti-file-upload"></i>
+      <p><strong>Clique para selecionar</strong> ou arraste o arquivo aqui<br>
+      <span style="font-size:10.5px;color:#8892a4">Aceita apenas arquivos .json exportados por este painel</span></p>
+    </div>
+    <input type="file" id="fileInput" accept=".json,application/json" style="display:none" onchange="readFile(this)">
+
+    <div class="imp-preview" id="impPreview">
+      <h4><i class="ti ti-table"></i> Prévia dos dados encontrados</h4>
+      <table id="impTable"></table>
+    </div>
+
+    <div class="imp-ok" id="impOk">
+      <i class="ti ti-circle-check" style="font-size:18px;color:#1D9E75"></i>
+      <span id="impOkMsg"></span>
+    </div>
+    <div class="imp-err" id="impErr">
+      <i class="ti ti-alert-circle" style="font-size:18px;color:#D85A30"></i>
+      <span id="impErrMsg"></span>
+    </div>
+
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeImport()">Cancelar</button>
+      <button class="btn-confirm" id="btnConfirmImport" style="background:#2E5FA3" onclick="confirmImport()" disabled>
+        <i class="ti ti-check"></i> Aplicar backup
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>Arcan Distribuidora de Materiais Cirúrgicos — Dashboard Financeiro</h1>
+    <p>OPME Ortopédico · Fortaleza/CE · Jan–Dez 2026 · Módulo 2 — Controladoria</p>
+  </div>
+  <div class="hdr-right">
+    <div class="save-badge" id="saveBadge">
+      <i class="ti ti-cloud-check"></i>
+      <span id="saveLabel">Dados salvos</span>
+    </div>
+    <button class="btn-export" onclick="exportBackup()" title="Baixa um arquivo .json com todos os dados inseridos">
+      <i class="ti ti-download"></i> Exportar Dados
+    </button>
+    <button class="btn-import" onclick="openImport()" title="Carrega um backup .json exportado anteriormente">
+      <i class="ti ti-upload"></i> Importar Dados
+    </button>
+    <button class="btn-reset" onclick="openModal()">
+      <i class="ti ti-restore"></i> Resetar
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabbar">
+  <button class="tbtn on" onclick="sw(0)"><i class="ti ti-database"></i>Base de Dados</button>
+  <button class="tbtn" onclick="sw(1)"><i class="ti ti-cash"></i>Fluxo de Caixa</button>
+  <button class="tbtn" onclick="sw(2)"><i class="ti ti-report"></i>DRE Financeira</button>
+  <button class="tbtn" onclick="sw(3)"><i class="ti ti-chart-bar"></i>Indicadores</button>
+  <button class="tbtn" onclick="sw(4)"><i class="ti ti-math"></i>Fórmulas</button>
+</div>
+
+<!-- P0: BASE -->
+<div class="pnl on" id="p0">
+  <p class="slbl">Valores editáveis — dados salvos automaticamente no navegador ao digitar</p>
+  <p class="hint"><i class="ti ti-arrows-horizontal"></i> role para ver todos os meses e a coluna Total</p>
+  <div class="twrap">
+    <table id="tBase">
+      <thead><tr id="baseHead"></tr></thead>
+      <tbody id="baseBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- P1: FLUXO -->
+<div class="pnl" id="p1">
+  <p class="slbl">Clique em qualquer seção para expandir ou recolher Previsto × Realizado × Variação%</p>
+  <p class="hint"><i class="ti ti-arrows-horizontal"></i> role para ver todos os meses</p>
+  <div class="twrap">
+    <table id="tFC">
+      <thead><tr id="fcHead"></tr></thead>
+      <tbody id="fcBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- P2: DRE -->
+<div class="pnl" id="p2">
+  <p class="slbl">DRE regime de caixa — clique nas linhas azuis para ver o detalhamento</p>
+  <p class="hint"><i class="ti ti-arrows-horizontal"></i> role para ver todos os meses</p>
+  <div class="twrap">
+    <table id="tDRE">
+      <thead><tr id="dreHead"></tr></thead>
+      <tbody id="dreBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- P3: KPI -->
+<div class="pnl" id="p3">
+  <p class="slbl">Indicadores calculados automaticamente com base nos dados inseridos</p>
+  <div class="kgrid" id="kgrid"></div>
+  <div class="chart-legend">
+    <span><span class="leg-dot" style="background:#B5D4F4"></span>Receita</span>
+    <span><span class="leg-dot" style="background:#5DCAA5"></span>Resultado positivo</span>
+    <span><span class="leg-dot" style="background:#F0997B"></span>Resultado negativo</span>
+  </div>
+  <div style="position:relative;width:100%;height:215px;margin-bottom:14px">
+    <canvas id="kChart" role="img" aria-label="Gráfico de barras com receita e resultado líquido mensal.">Receita e resultado líquido jan–dez.</canvas>
+  </div>
+  <div id="diagBlock"></div>
+</div>
+
+<!-- P4: FÓRMULAS -->
+<div class="pnl" id="p4">
+  <p class="slbl">Memorial de fórmulas — todas as equações utilizadas nos cálculos</p>
+  <div id="formList"></div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// 1. DADOS PADRÃO (fallback quando localStorage está vazio)
+// ═══════════════════════════════════════════════════════════════
+const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const LS_KEY = 'arcan_dash_v6';
+
+// ─── PLANO DE CONTAS ARCAN (V2Saúde) ───────────────────────────
+// Grupos: 1-RECEITAS | 2-CMV | 3-CUSTOS VARIÁVEIS | 4-CUSTOS FIXOS
+//         5-CAIXA/BANCOS | 6-INVESTIMENTOS | 7-IMPOSTOS | 8-FINANCEIRO
+// Cada linha tem sufixo _p (previsto) e _r (realizado)
+// Valores em R$ mil. Zeros = meses sem dado ou a preencher.
+const DEFAULT = [
+  // ── GRUPO 1 — RECEITAS ──────────────────────────────────────
+  { g:'1', l:'1.1 · Vendas Mercadorias OPME',              k:'r11_p', v:[1230,1230,1230,1230,1230,1230,1230,1230,1230,1230,1230,1230] },
+  { g:'1', l:'1.1 · Vendas Mercadorias OPME',              k:'r11_r', v:[1240,826,816,776,559,949,0,0,0,0,0,0] },
+  { g:'1', l:'1.2 · Receita com Serviços (Loc./Comiss.)',  k:'r12_p', v:[50,50,50,50,50,50,50,50,50,50,50,50] },
+  { g:'1', l:'1.2 · Receita com Serviços (Loc./Comiss.)',  k:'r12_r', v:[30,20,20,10,10,10,0,0,0,0,0,0] },
+  { g:'1', l:'1.3 · Receitas Financeiras',                 k:'r13_p', v:[20,20,20,20,20,20,20,20,20,20,20,20] },
+  { g:'1', l:'1.3 · Receitas Financeiras',                 k:'r13_r', v:[20,20,20,20,20,20,0,0,0,0,0,0] },
+  { g:'1', l:'1.4 · Outras Receitas / Bonificações',       k:'r14_p', v:[0,0,0,0,0,0,0,0,0,0,0,0] },
+  { g:'1', l:'1.4 · Outras Receitas / Bonificações',       k:'r14_r', v:[0,0,0,0,0,0,0,0,0,0,0,0] },
+
+  // ── GRUPO 2 — CMV ───────────────────────────────────────────
+  { g:'2', l:'2.1 · Compra de Mercadorias (Fornecedores)', k:'c21_p', v:[443,443,443,443,443,443,443,443,443,443,443,443] },
+  { g:'2', l:'2.1 · Compra de Mercadorias (Fornecedores)', k:'c21_r', v:[1382,265,2911,325,503,350,0,0,0,0,0,0] },
+  { g:'2', l:'2.2 · Custos Diretos (Frete/Instrum./etc.)', k:'c22_p', v:[0,0,0,0,0,0,0,0,0,0,0,0] },
+  { g:'2', l:'2.2 · Custos Diretos (Frete/Instrum./etc.)', k:'c22_r', v:[0,0,0,0,0,0,0,0,0,0,0,0] },
+
+  // ── GRUPO 3 — CUSTOS VARIÁVEIS ──────────────────────────────
+  { g:'3', l:'3.1 · Comerciais (Comissões/Patrocínios)',   k:'v31_p', v:[40,40,40,40,40,40,40,40,40,40,40,40] },
+  { g:'3', l:'3.1 · Comerciais (Comissões/Patrocínios)',   k:'v31_r', v:[55,48,52,60,43,36,0,0,0,0,0,0] },
+  { g:'3', l:'3.2 · Logística (Frete s/ Vendas/Combust.)',  k:'v32_p', v:[10,10,10,10,10,10,10,10,10,10,10,10] },
+  { g:'3', l:'3.2 · Logística (Frete s/ Vendas/Combust.)',  k:'v32_r', v:[8,8,8,9,8,7,0,0,0,0,0,0] },
+  { g:'3', l:'3.3.1 · Juros Antecipação (Desconto)',       k:'v331_p', v:[20,20,20,20,20,20,20,20,20,20,20,20] },
+  { g:'3', l:'3.3.1 · Juros Antecipação (Desconto)',       k:'v331_r', v:[39,28,31,38,25,18,0,0,0,0,0,0] },
+  { g:'3', l:'3.3.3–7 · Outras Financeiras (Tarifas/IOF)', k:'v33o_p', v:[9,9,9,9,9,9,9,9,9,9,9,9] },
+  { g:'3', l:'3.3.3–7 · Outras Financeiras (Tarifas/IOF)', k:'v33o_r', v:[9,11,13,12,10,10,0,0,0,0,0,0] },
+
+  // ── GRUPO 4 — CUSTOS FIXOS ──────────────────────────────────
+  { g:'4', l:'4.1 · Administrativas (Folha/INSS/Sócios)',  k:'f41_p', v:[155,155,155,155,155,155,155,155,155,155,155,155] },
+  { g:'4', l:'4.1 · Administrativas (Folha/INSS/Sócios)',  k:'f41_r', v:[143,90,94,93,96,120,0,0,0,0,0,0] },
+  { g:'4', l:'4.2 · Estrutural (ERP/Aluguel/Telecom)',      k:'f42_p', v:[65,65,65,65,65,65,65,65,65,65,65,65] },
+  { g:'4', l:'4.2 · Estrutural (ERP/Aluguel/Telecom)',      k:'f42_r', v:[28,18,18,18,19,23,0,0,0,0,0,0] },
+  { g:'4', l:'4.3.1 · Empréstimos Bancários',               k:'f431_p', v:[130,130,130,130,130,130,130,130,130,130,130,130] },
+  { g:'4', l:'4.3.1 · Empréstimos Bancários',               k:'f431_r', v:[348,215,389,444,216,440,0,0,0,0,0,0] },
+  { g:'4', l:'4.3.2 · Empréstimo a Terceiros',              k:'f432_p', v:[40,40,40,40,40,40,40,40,40,40,40,40] },
+  { g:'4', l:'4.3.2 · Empréstimo a Terceiros',              k:'f432_r', v:[60,40,80,80,80,90,0,0,0,0,0,0] },
+  { g:'4', l:'4.3.3 · Outras Despesas Financeiras',         k:'f433_p', v:[5,5,5,5,5,5,5,5,5,5,5,5] },
+  { g:'4', l:'4.3.3 · Outras Despesas Financeiras',         k:'f433_r', v:[7,6,5,5,5,6,0,0,0,0,0,0] },
+
+  // ── GRUPO 7 — IMPOSTOS ──────────────────────────────────────
+  { g:'7', l:'7.1 · Federais (PIS/COFINS/IRPJ/CSLL)',      k:'t71_p', v:[65,65,65,65,65,65,65,65,65,65,65,65] },
+  { g:'7', l:'7.1 · Federais (PIS/COFINS/IRPJ/CSLL)',      k:'t71_r', v:[20,46,137,55,67,110,0,0,0,0,0,0] },
+  { g:'7', l:'7.2 · Estaduais (ICMS/IPVA/Parcel.)',        k:'t72_p', v:[8,8,8,8,8,8,8,8,8,8,8,8] },
+  { g:'7', l:'7.2 · Estaduais (ICMS/IPVA/Parcel.)',        k:'t72_r', v:[4,8,16,8,8,8,0,0,0,0,0,0] },
+  { g:'7', l:'7.3 · Municipais (ISS/IPTU)',                 k:'t73_p', v:[4,4,4,4,4,4,4,4,4,4,4,4] },
+  { g:'7', l:'7.3 · Municipais (ISS/IPTU)',                 k:'t73_r', v:[0,0,0,0,0,0,0,0,0,0,0,0] },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// 2. PERSISTÊNCIA — localStorage com fallback seguro
+// ═══════════════════════════════════════════════════════════════
+function lsAvailable() {
+  try { localStorage.setItem('__test__','1'); localStorage.removeItem('__test__'); return true; }
+  catch(e) { return false; }
+}
+const HAS_LS = lsAvailable();
+
+function loadData() {
+  if (!HAS_LS) return buildDefaultData();
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return buildDefaultData();
+    const saved = JSON.parse(raw);
+    // Validate structure
+    const D = {};
+    DEFAULT.forEach(row => {
+      D[row.k] = Array.isArray(saved[row.k]) && saved[row.k].length === 12
+        ? saved[row.k].map(v => parseFloat(v) || 0)
+        : [...row.v];
+    });
+    return D;
+  } catch(e) {
+    return buildDefaultData();
+  }
+}
+
+function buildDefaultData() {
+  const D = {};
+  DEFAULT.forEach(r => { D[r.k] = [...r.v]; });
+  return D;
+}
+
+function saveData() {
+  if (!HAS_LS) { showToast('⚠ localStorage indisponível neste ambiente', false); return; }
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(D));
+    setSaveBadge('saved');
+  } catch(e) {
+    showToast('Erro ao salvar: ' + e.message, false);
+  }
+}
+
+// Debounce: salva 600ms após o último input
+let saveTimer = null;
+function debounceSave() {
+  setSaveBadge('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveData();
+    showToast('✓ Dados salvos no navegador', true);
+  }, 600);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3. ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════
+const D = loadData();
+const accState = {};
+
+// ═══════════════════════════════════════════════════════════════
+// 4. UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+function setSaveBadge(state) {
+  const badge = document.getElementById('saveBadge');
+  const lbl   = document.getElementById('saveLabel');
+  badge.className = 'save-badge ' + state;
+  if (state === 'saved')  { badge.querySelector('i').className='ti ti-cloud-check';   lbl.textContent='Dados salvos'; }
+  if (state === 'saving') { badge.querySelector('i').className='ti ti-loader';         lbl.textContent='Salvando…'; }
+  if (state === 'unsaved'){ badge.querySelector('i').className='ti ti-cloud-upload';   lbl.textContent='Não salvo'; }
+}
+
+let toastTimer = null;
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<i class="ti ${ok?'ti-check':'ti-alert-circle'}"></i> ${msg}`;
+  t.className = 'toast show' + (ok?' green':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className='toast'; }, 2800);
+}
+
+function openModal()  { document.getElementById('modalBg').classList.add('show'); }
+function closeModal() { document.getElementById('modalBg').classList.remove('show'); }
+function confirmReset() {
+  DEFAULT.forEach(row => { D[row.k] = [...row.v]; });
+  if (HAS_LS) localStorage.removeItem(LS_KEY);
+  closeModal();
+  renderBase();
+  renderFC();
+  renderDRE();
+  setSaveBadge('saved');
+  showToast('✓ Dados resetados para os valores padrão', true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 5. FÓRMULAS FINANCEIRAS — plano de contas Arcan
+// ═══════════════════════════════════════════════════════════════
+const g   = (k,i)   => D[k][i] || 0;
+const sm  = k       => D[k].reduce((a,b)=>a+(b||0), 0);
+const fmt = v       => isNaN(v)||v==null ? '—' : (v<0?'-':'')+'R$'+Math.abs(Math.round(v)).toLocaleString('pt-BR')+'k';
+const fpc = v       => !isFinite(v) ? '—' : (v>0?'+':'')+v.toFixed(1)+'%';
+const pc  = v       => v >= 0 ? 'pos' : 'neg';
+const bc  = v       => v >= 0 ? 'bp'  : 'bn';
+
+// ── Agregadores por grupo e sufixo (_p ou _r) ──────────────────
+// Grupo 1 — Receita Bruta Total
+const rb  = (i,s) => g('r11_'+s,i)+g('r12_'+s,i)+g('r13_'+s,i)+g('r14_'+s,i);
+// Grupo 2 — CMV Total
+const cmv = (i,s) => g('c21_'+s,i)+g('c22_'+s,i);
+// Grupo 3 — Custos Variáveis Total
+const cv  = (i,s) => g('v31_'+s,i)+g('v32_'+s,i)+g('v331_'+s,i)+g('v33o_'+s,i);
+// Grupo 7 — Impostos Total
+const imp = (i,s) => g('t71_'+s,i)+g('t72_'+s,i)+g('t73_'+s,i);
+// Grupo 4 — Custos Fixos operacionais (4.1 + 4.2)
+const fix = (i,s) => g('f41_'+s,i)+g('f42_'+s,i)+g('f433_'+s,i);
+// Grupo 4 — Dreno financeiro (4.3.1 + 4.3.2)
+const dr  = (i,s) => g('f431_'+s,i)+g('f432_'+s,i);
+// Deduções totais (CMV + CustVar + Impostos)
+const ded = (i,s) => cmv(i,s)+cv(i,s)+imp(i,s);
+// Margem Bruta
+const mc  = (i,s) => rb(i,s) - ded(i,s);
+// EBITDA Caixa
+const eb  = (i,s) => mc(i,s) - fix(i,s);
+// Resultado Líquido
+const ll  = (i,s) => eb(i,s) - dr(i,s);
+
+// ═══════════════════════════════════════════════════════════════
+// 6. TAB SWITCH
+// ═══════════════════════════════════════════════════════════════
+function sw(n) {
+  document.querySelectorAll('.tbtn').forEach((b,i) => b.classList.toggle('on', i===n));
+  document.querySelectorAll('.pnl') .forEach((p,i) => p.classList.toggle('on', i===n));
+  if (n===1) renderFC();
+  if (n===2) renderDRE();
+  if (n===3) renderKPI();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 7. HEADER ROW
+// ═══════════════════════════════════════════════════════════════
+function buildHead(tr, extras=[]) {
+  tr.innerHTML = '';
+  const th0 = document.createElement('th'); th0.textContent='Linha'; th0.className='lc'; tr.appendChild(th0);
+  MS.forEach(m => { const th=document.createElement('th'); th.textContent=m; tr.appendChild(th); });
+  extras.forEach(e => { const th=document.createElement('th'); th.textContent=e; th.className='th-hi'; tr.appendChild(th); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 8. BASE DE DADOS — agrupada pelo plano de contas
+// ═══════════════════════════════════════════════════════════════
+const GROUP_LABELS = {
+  '1':'Grupo 1 — RECEITAS',
+  '2':'Grupo 2 — CMV (Custo das Mercadorias Vendidas)',
+  '3':'Grupo 3 — CUSTOS VARIÁVEIS',
+  '4':'Grupo 4 — CUSTOS FIXOS',
+  '7':'Grupo 7 — IMPOSTOS',
+};
+const GROUP_COLORS = {
+  '1':'#E6F1FB','2':'#FCE4D6','3':'#FFF2CC','4':'#E2EFDA','7':'#F2F2F2',
+};
+const GROUP_HDR_COLORS = {
+  '1':'#1F3864','2':'#843C0C','3':'#7F6000','4':'#375623','7':'#404040',
+};
+
+function renderBase() {
+  buildHead(document.getElementById('baseHead'), ['Total Acum.']);
+  const tb = document.getElementById('baseBody');
+  tb.innerHTML = '';
+
+  // Build pairs: every two rows with same group are P/R
+  let lastGroup = null;
+  for (let i = 0; i < DEFAULT.length; i += 2) {
+    const rowP = DEFAULT[i];   // previsto
+    const rowR = DEFAULT[i+1]; // realizado
+    const grp  = rowP.g;
+
+    // Group separator header
+    if (grp !== lastGroup) {
+      lastGroup = grp;
+      const sep = document.createElement('tr');
+      sep.style.cssText = `background:${GROUP_HDR_COLORS[grp]};cursor:default`;
+      let sh = `<td class="lc" colspan="14" style="color:#fff;font-weight:700;font-size:11px;padding:6px 10px;letter-spacing:.04em">`+
+               `<i class="ti ti-folder" style="margin-right:5px"></i>${GROUP_LABELS[grp]}</td>`;
+      sep.innerHTML = sh;
+      tb.appendChild(sep);
+
+      // Sub-header row
+      const subh = document.createElement('tr');
+      subh.style.background = GROUP_COLORS[grp];
+      let shh = `<td class="lc" style="font-size:10px;font-weight:600;color:#555;padding:4px 10px">Conta / Natureza</td>`;
+      MS.forEach(m => { shh += `<td style="font-size:10px;font-weight:600;color:#555;text-align:right;padding:4px 8px">${m}</td>`; });
+      shh += `<td class="th-hi" style="font-size:10px;font-weight:600">Total</td>`;
+      subh.innerHTML = shh;
+      tb.appendChild(subh);
+    }
+
+    // P row
+    const trP = document.createElement('tr');
+    trP.style.background = GROUP_COLORS[grp];
+    let hP = `<td class="lc" style="padding-left:14px;font-size:11px;color:#555">`+
+             `<span style="font-size:9px;font-weight:700;background:#2E5FA3;color:#fff;border-radius:3px;padding:1px 5px;margin-right:5px">P</span>`+
+             `${rowP.l}</td>`;
+    let totP = 0;
+    for (let j=0; j<12; j++) {
+      const v = D[rowP.k][j]; totP += v||0;
+      hP += `<td><input type="number" value="${v}" step="1" id="inp_${rowP.k}_${j}" oninput="onInput('${rowP.k}',${j},this.value)"></td>`;
+    }
+    hP += `<td class="td-hi" id="tot_${rowP.k}">${fmt(totP)}</td>`;
+    trP.innerHTML = hP;
+    tb.appendChild(trP);
+
+    // R row
+    const trR = document.createElement('tr');
+    trR.style.background = '#fff';
+    let hR = `<td class="lc" style="padding-left:14px;font-size:11px;color:#333">`+
+             `<span style="font-size:9px;font-weight:700;background:#1D9E75;color:#fff;border-radius:3px;padding:1px 5px;margin-right:5px">R</span>`+
+             `${rowR.l}</td>`;
+    let totR = 0;
+    for (let j=0; j<12; j++) {
+      const v = D[rowR.k][j]; totR += v||0;
+      hR += `<td><input type="number" value="${v}" step="1" id="inp_${rowR.k}_${j}" oninput="onInput('${rowR.k}',${j},this.value)"></td>`;
+    }
+    hR += `<td class="td-hi" id="tot_${rowR.k}">${fmt(totR)}</td>`;
+    trR.innerHTML = hR;
+    tb.appendChild(trR);
+
+    // Variação % row
+    const trV = document.createElement('tr');
+    trV.style.background = GROUP_COLORS[grp];
+    let hV = `<td class="lc" style="padding-left:14px;font-size:10.5px;color:#888;font-weight:400;font-style:italic">Variação% (P→R)</td>`;
+    for (let j=0; j<12; j++) {
+      const p = D[rowP.k][j]||0, r = D[rowR.k][j]||0;
+      const vr = p ? ((r-p)/Math.abs(p)*100) : 0;
+      hV += `<td><span class="${bc(vr)}">${fpc(vr)}</span></td>`;
+    }
+    const totPv = DEFAULT[i].v.reduce((a,b)=>a+b,0); // not used for formatting
+    const vTot = totP ? ((totR-totP)/Math.abs(totP)*100) : 0;
+    hV += `<td><span class="${bc(vTot)}">${fpc(vTot)}</span></td>`;
+    trV.innerHTML = hV;
+    tb.appendChild(trV);
+  }
+}
+
+function onInput(k, i, val) {
+  D[k][i] = parseFloat(val) || 0;
+
+  // 1. Update total cell in base tab immediately
+  const tot = D[k].reduce((a,b) => a+(b||0), 0);
+  const tc = document.getElementById('tot_'+k);
+  if (tc) tc.textContent = fmt(tot);
+
+  // 2. Flash input border
+  const inp = document.getElementById(`inp_${k}_${i}`);
+  if (inp) { inp.classList.add('just-saved'); setTimeout(()=>inp.classList.remove('just-saved'),800); }
+
+  // 3. Re-render active analytical tab
+  const cur = document.querySelector('.pnl.on')?.id;
+  if (cur==='p1') renderFC();
+  else if (cur==='p2') renderDRE();
+  else if (cur==='p3') renderKPI();
+
+  // 4. Debounced save to localStorage
+  debounceSave();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 9. ACCORDION
+// ═══════════════════════════════════════════════════════════════
+function toggleAcc(id) {
+  accState[id] = !accState[id];
+  document.querySelectorAll(`[data-acc="${id}"]`).forEach(r => r.classList.toggle('hide', !accState[id]));
+  const chv = document.getElementById('chv_'+id);
+  if (chv) chv.classList.toggle('open', accState[id]);
+}
+
+function makeAccRow(id, label, extraCols) {
+  const tr = document.createElement('tr');
+  tr.className = 'acc-row';
+  tr.setAttribute('role','button'); tr.setAttribute('tabindex','0');
+  tr.onclick = () => toggleAcc(id);
+  tr.onkeydown = e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleAcc(id);} };
+  const td = document.createElement('td'); td.className='lc';
+  td.innerHTML = `<span class="chv" id="chv_${id}">▶</span>${label}`;
+  tr.appendChild(td);
+  for (let i=0;i<extraCols;i++) { const t=document.createElement('td'); t.textContent=''; tr.appendChild(t); }
+  return tr;
+}
+
+function makeDetRow(id, label, cells) {
+  const tr = document.createElement('tr'); tr.className='det hide'; tr.setAttribute('data-acc',id);
+  const td = document.createElement('td'); td.className='lc'; td.textContent=label; tr.appendChild(td);
+  cells.forEach(c => { const t=document.createElement('td'); t.innerHTML=c; tr.appendChild(t); });
+  return tr;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 10. FLUXO DE CAIXA — estruturado pelo plano de contas
+// ═══════════════════════════════════════════════════════════════
+function renderFC() {
+  buildHead(document.getElementById('fcHead'));
+  const tb = document.getElementById('fcBody'); tb.innerHTML='';
+
+  function addAcc(id, label, fnP, fnR, negSign=false) {
+    tb.appendChild(makeAccRow(id, label, 12));
+    const subRows = [
+      { l:'Previsto',   fn: fnP, color:false },
+      { l:'Realizado',  fn: fnR, color:true, sign: negSign?-1:1 },
+      { l:'Variação %', fn: (i)=>{ const p=fnP(i),r=fnR(i); return p?((r-p)/Math.abs(p)*100):0; }, pct:true, sign:negSign?-1:1 },
+    ];
+    subRows.forEach(row => {
+      const cells=[];
+      for (let i=0;i<12;i++) {
+        const v=row.fn(i);
+        if (row.pct)        cells.push(`<span class="${bc(v*(row.sign||1))}">${fpc(v)}</span>`);
+        else if (row.color) cells.push(`<span class="${pc(v*(row.sign||1))}">${fmt(v)}</span>`);
+        else                cells.push(fmt(v));
+      }
+      tb.appendChild(makeDetRow(id, row.l, cells));
+    });
+  }
+
+  // ── GRUPO 1 — RECEITAS ──
+  const divR1 = document.createElement('tr');
+  divR1.innerHTML=`<td colspan="13" class="lc" style="background:#1F3864;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-trending-up" style="margin-right:5px"></i>GRUPO 1 — RECEITAS</td>`;
+  tb.appendChild(divR1);
+  addAcc('r11','▸  1.1 · Vendas de Mercadorias OPME',         i=>g('r11_p',i), i=>g('r11_r',i));
+  addAcc('r12','▸  1.2 · Receita com Serviços',                i=>g('r12_p',i), i=>g('r12_r',i));
+  addAcc('r13','▸  1.3 · Receitas Financeiras',                i=>g('r13_p',i), i=>g('r13_r',i));
+  addAcc('r14','▸  1.4 · Outras Receitas / Bonificações',      i=>g('r14_p',i), i=>g('r14_r',i));
+  // Subtotal receita
+  const trRec = document.createElement('tr'); trRec.className='sub-row';
+  let hRec=`<td class="lc">✦  RECEITA BRUTA TOTAL (Grupo 1)</td>`;
+  for(let i=0;i<12;i++){const v=rb(i,'r');hRec+=`<td class="${pc(v)}">${fmt(v)}</td>`;}
+  trRec.innerHTML=hRec; tb.appendChild(trRec);
+
+  // ── GRUPO 2 — CMV ──
+  const divC2=document.createElement('tr');
+  divC2.innerHTML=`<td colspan="13" class="lc" style="background:#843C0C;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-building-warehouse" style="margin-right:5px"></i>GRUPO 2 — CMV</td>`;
+  tb.appendChild(divC2);
+  addAcc('c21','▸  2.1 · Compra de Mercadorias (Fornecedores)', i=>g('c21_p',i), i=>g('c21_r',i), true);
+  addAcc('c22','▸  2.2 · Custos Diretos (Frete/Instrum.)',       i=>g('c22_p',i), i=>g('c22_r',i), true);
+
+  // ── GRUPO 3 — CUSTOS VARIÁVEIS ──
+  const divV3=document.createElement('tr');
+  divV3.innerHTML=`<td colspan="13" class="lc" style="background:#7F6000;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-percentage" style="margin-right:5px"></i>GRUPO 3 — CUSTOS VARIÁVEIS</td>`;
+  tb.appendChild(divV3);
+  addAcc('v31','▸  3.1 · Comerciais (Comissões/Patrocínios)',    i=>g('v31_p',i), i=>g('v31_r',i), true);
+  addAcc('v32','▸  3.2 · Logística (Frete s/ Vendas)',           i=>g('v32_p',i), i=>g('v32_r',i), true);
+  addAcc('v331','▸  3.3.1 · Juros Antecipação (Desconto)',       i=>g('v331_p',i), i=>g('v331_r',i), true);
+  addAcc('v33o','▸  3.3.3–7 · Outras Financeiras (IOF/Tarifas)',i=>g('v33o_p',i), i=>g('v33o_r',i), true);
+
+  // ── MARGEM BRUTA ──
+  const trMB=document.createElement('tr'); trMB.className='sub-row';
+  let hMB=`<td class="lc">✦  MARGEM BRUTA (G1−G2−G3)</td>`;
+  for(let i=0;i<12;i++){const v=mc(i,'r');hMB+=`<td class="${pc(v)}">${fmt(v)}</td>`;}
+  trMB.innerHTML=hMB; tb.appendChild(trMB);
+
+  // ── GRUPO 7 — IMPOSTOS ──
+  const divT7=document.createElement('tr');
+  divT7.innerHTML=`<td colspan="13" class="lc" style="background:#404040;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-receipt" style="margin-right:5px"></i>GRUPO 7 — IMPOSTOS</td>`;
+  tb.appendChild(divT7);
+  addAcc('t71','▸  7.1 · Federais (PIS/COFINS/IRPJ/CSLL)',      i=>g('t71_p',i), i=>g('t71_r',i), true);
+  addAcc('t72','▸  7.2 · Estaduais (ICMS/IPVA/Parcel.)',        i=>g('t72_p',i), i=>g('t72_r',i), true);
+  addAcc('t73','▸  7.3 · Municipais (ISS/IPTU)',                 i=>g('t73_p',i), i=>g('t73_r',i), true);
+
+  // ── GRUPO 4 — CUSTOS FIXOS ──
+  const divF4=document.createElement('tr');
+  divF4.innerHTML=`<td colspan="13" class="lc" style="background:#375623;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-building" style="margin-right:5px"></i>GRUPO 4 — CUSTOS FIXOS</td>`;
+  tb.appendChild(divF4);
+  addAcc('f41','▸  4.1 · Administrativas (Folha/INSS/Sócios)',   i=>g('f41_p',i), i=>g('f41_r',i), true);
+  addAcc('f42','▸  4.2 · Estrutural (ERP/Aluguel/Telecom)',       i=>g('f42_p',i), i=>g('f42_r',i), true);
+  addAcc('f433','▸  4.3.3 · Outras Despesas Financeiras',         i=>g('f433_p',i), i=>g('f433_r',i), true);
+
+  // EBITDA
+  const trEB=document.createElement('tr'); trEB.className='sub-row';
+  let hEB=`<td class="lc">✦  EBITDA CAIXA (MB−G4 op.)</td>`;
+  for(let i=0;i<12;i++){const v=eb(i,'r');hEB+=`<td class="${pc(v)}">${fmt(v)}</td>`;}
+  trEB.innerHTML=hEB; tb.appendChild(trEB);
+
+  // ── DRENO FINANCEIRO ──
+  const divDr=document.createElement('tr');
+  divDr.innerHTML=`<td colspan="13" class="lc" style="background:#9C0006;color:#fff;font-weight:700;font-size:11px;padding:7px 10px;letter-spacing:.04em"><i class="ti ti-alert-triangle" style="margin-right:5px"></i>DRENO FINANCEIRO (G4 — Empréstimos)</td>`;
+  tb.appendChild(divDr);
+  addAcc('f431','▸  4.3.1 · Empréstimos Bancários',              i=>g('f431_p',i), i=>g('f431_r',i), true);
+  addAcc('f432','▸  4.3.2 · Empréstimo a Terceiros',             i=>g('f432_p',i), i=>g('f432_r',i), true);
+
+  // RESULTADO LÍQUIDO
+  const trLL=document.createElement('tr'); trLL.className='grand-row';
+  let hLL=`<td class="lc">✦  RESULTADO LÍQUIDO FINAL</td>`;
+  for(let i=0;i<12;i++){const v=ll(i,'r');hLL+=`<td class="${pc(v)}">${fmt(v)}</td>`;}
+  trLL.innerHTML=hLL; tb.appendChild(trLL);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 11. DRE FINANCEIRA — plano de contas Arcan
+// ═══════════════════════════════════════════════════════════════
+function renderDRE() {
+  buildHead(document.getElementById('dreHead'), ['Total Acum.','% Rec.']);
+  const tb = document.getElementById('dreBody'); tb.innerHTML='';
+  const totRB = ['r11_r','r12_r','r13_r','r14_r'].reduce((s,k)=>s+sm(k),0);
+
+  function addSubRow(cls, label, fnVal) {
+    const tr=document.createElement('tr'); tr.className=cls;
+    let h=`<td class="lc">${label}</td>`, tot=0;
+    for(let i=0;i<12;i++){const v=fnVal(i);tot+=v;h+=`<td class="${pc(v)}">${fmt(v)}</td>`;}
+    const pct=totRB?(tot/totRB*100):0;
+    h+=`<td class="td-hi ${pc(tot)}">${fmt(tot)}</td><td class="td-pct ${pc(pct)}">${pct.toFixed(1)}%</td>`;
+    tr.innerHTML=h; tb.appendChild(tr);
+  }
+
+  function addAccGroup(id, label, mainFn, isNeg, subs) {
+    const atr=makeAccRow(id, label, 14);
+    let tot=0;
+    for(let i=0;i<12;i++){const v=mainFn(i);tot+=v;atr.cells[i+1].innerHTML=`<span class="${pc(isNeg?-v:v)}">${fmt(v)}</span>`;}
+    const pct=totRB?(tot/totRB*100):0;
+    atr.cells[13].innerHTML=`<span class="td-hi ${pc(isNeg?-tot:tot)}">${fmt(tot)}</span>`;
+    atr.cells[14].innerHTML=`<span class="td-pct">${pct.toFixed(1)}%</span>`;
+    tb.appendChild(atr);
+    subs.forEach(sub=>{
+      const cells=[]; let st=0;
+      for(let i=0;i<12;i++){
+        const v=sub.fn(i);
+        if(sub.pct){cells.push(`<span class="${bc(v)}">${fpc(v)}</span>`);}
+        else{st+=v;cells.push(`<span class="${pc(sub.neg?-v:v)}">${fmt(v)}</span>`);}
+      }
+      const pct2=(!sub.pct&&totRB)?st/totRB*100:null;
+      cells.push(sub.pct?'—':`<span class="${pc(sub.neg?-st:st)}">${fmt(st)}</span>`);
+      cells.push(pct2!=null?`${pct2.toFixed(1)}%`:'—');
+      tb.appendChild(makeDetRow(id, sub.l, cells));
+    });
+  }
+
+  addAccGroup('dr_rec','▸  Receita Bruta Total (Grupo 1)', i=>rb(i,'r'), false,[
+    {l:'1.1 · Vendas OPME (R)',           fn:i=>g('r11_r',i)},
+    {l:'1.2 · Serviços (R)',              fn:i=>g('r12_r',i)},
+    {l:'1.3 · Receitas Financeiras (R)', fn:i=>g('r13_r',i)},
+    {l:'1.4 · Outras Receitas (R)',      fn:i=>g('r14_r',i)},
+    {l:'Var% 1.1 Prev/Real',             fn:i=>{const p=g('r11_p',i),r=g('r11_r',i);return p?((r-p)/Math.abs(p)*100):0;}, pct:true},
+  ]);
+  addAccGroup('dr_cmv','▸  CMV — Custo Mercadoria Vendida (Grupo 2)', i=>-cmv(i,'r'), true,[
+    {l:'2.1 · Compras de Mercadorias (R)', fn:i=>-g('c21_r',i), neg:true},
+    {l:'2.2 · Custos Diretos (R)',         fn:i=>-g('c22_r',i), neg:true},
+    {l:'Var% 2.1 Prev/Real',              fn:i=>{const p=g('c21_p',i),r=g('c21_r',i);return p?((r-p)/Math.abs(p)*100):0;}, pct:true},
+  ]);
+  addAccGroup('dr_cv','▸  Custos Variáveis (Grupo 3)', i=>-cv(i,'r'), true,[
+    {l:'3.1 · Comerciais (R)',            fn:i=>-g('v31_r',i), neg:true},
+    {l:'3.2 · Logística (R)',             fn:i=>-g('v32_r',i), neg:true},
+    {l:'3.3.1 · Juros Antecipação (R)',   fn:i=>-g('v331_r',i), neg:true},
+    {l:'3.3.3–7 · Outras Fin. (R)',       fn:i=>-g('v33o_r',i), neg:true},
+  ]);
+  addSubRow('sub-row','(=) MARGEM BRUTA  (G1 − G2 − G3)', i=>mc(i,'r'));
+  addAccGroup('dr_imp','▸  Impostos (Grupo 7)', i=>-imp(i,'r'), true,[
+    {l:'7.1 · Federais (R)',   fn:i=>-g('t71_r',i), neg:true},
+    {l:'7.2 · Estaduais (R)',  fn:i=>-g('t72_r',i), neg:true},
+    {l:'7.3 · Municipais (R)', fn:i=>-g('t73_r',i), neg:true},
+  ]);
+  addAccGroup('dr_fix','▸  Custos Fixos Operacionais (Grupo 4 — 4.1+4.2+4.3.3)', i=>-fix(i,'r'), true,[
+    {l:'4.1 · Administrativas (R)',     fn:i=>-g('f41_r',i), neg:true},
+    {l:'4.2 · Estrutural (R)',          fn:i=>-g('f42_r',i), neg:true},
+    {l:'4.3.3 · Outras Desp. Fin. (R)',fn:i=>-g('f433_r',i), neg:true},
+  ]);
+  addSubRow('sub-row','(=) EBITDA CAIXA  (MB − G7 − G4 op.)', i=>eb(i,'r'));
+  addAccGroup('dr_dre','▸  Dreno Financeiro (G4 — 4.3.1+4.3.2)', i=>-dr(i,'r'), true,[
+    {l:'4.3.1 · Empréstimos Bancários (R)', fn:i=>-g('f431_r',i), neg:true},
+    {l:'4.3.2 · Empréstimos Terceiros (R)', fn:i=>-g('f432_r',i), neg:true},
+    {l:'Var% 4.3.1 Prev/Real',              fn:i=>{const p=g('f431_p',i),r=g('f431_r',i);return p?((r-p)/Math.abs(p)*100):0;}, pct:true},
+  ]);
+  addSubRow('grand-row','(=)  RESULTADO LÍQUIDO FINAL', i=>ll(i,'r'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 12. INDICADORES / KPI
+// ═══════════════════════════════════════════════════════════════
+let kpiChartInst = null;
+
+function renderKPI() {
+  const rb_arr = Array.from({length:12}, (_,i) => rb(i,'r'));
+  const lla  = Array.from({length:12}, (_,i) => ll(i,'r'));
+  const tRB  = rb_arr.reduce((a,b)=>a+b,0);
+  const tLL  = lla.reduce((a,b)=>a+b, 0);
+  const tMC  = Array.from({length:12}, (_,i)=>mc(i,'r')).reduce((a,b)=>a+b, 0);
+  const tEB  = Array.from({length:12}, (_,i)=>eb(i,'r')).reduce((a,b)=>a+b, 0);
+  const mbp  = tRB>0 ? (tMC/tRB*100) : 0;
+  const na   = rb_arr.filter(v=>v>0).length || 1;
+  const dfMed = (Array.from({length:12},(_,i)=>fix(i,'r')+imp(i,'r')).reduce((a,b)=>a+b,0)+
+                 Array.from({length:12},(_,i)=>dr(i,'r')).reduce((a,b)=>a+b,0)) / na;
+  const pe   = dfMed / 0.5049;
+  const rw   = lla.filter(v=>v>0).length;
+
+  const kpis = [
+    {l:'Receita Total',       v:fmt(tRB),           s:'acumulado período',     c:'#1F3864'},
+    {l:'Resultado Líquido',   v:fmt(tLL),           s:tLL>=0?'✓ positivo':'✗ negativo', c:tLL>=0?'#1D9E75':'#D85A30'},
+    {l:'Margem Bruta',        v:mbp.toFixed(1)+'%', s:'benchmark OPME: 45–65%',c:mbp>45?'#1D9E75':'#D85A30'},
+    {l:'EBITDA Caixa',        v:fmt(tEB),           s:'acumulado',             c:tEB>=0?'#1D9E75':'#D85A30'},
+    {l:'Ponto de Equilíbrio', v:fmt(pe),            s:'/mês (estimado)',        c:'#2E5FA3'},
+    {l:'Meses lucrativos',    v:rw+'/12',           s:'com resultado positivo', c:rw>=6?'#1D9E75':'#D85A30'},
+  ];
+  document.getElementById('kgrid').innerHTML = kpis.map(k=>
+    `<div class="kcard"><div class="klbl">${k.l}</div><div class="kval" style="color:${k.c}">${k.v}</div><div class="ksub">${k.s}</div></div>`
+  ).join('');
+
+  const ctx = document.getElementById('kChart').getContext('2d');
+  if (kpiChartInst) kpiChartInst.destroy();
+  kpiChartInst = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:MS,
+      datasets:[
+        { label:'Receita',   data:rb_arr,  backgroundColor:'#B5D4F4', borderRadius:4 },
+        { label:'Resultado', data:lla, backgroundColor:lla.map(v=>v>=0?'#5DCAA5':'#F0997B'), borderRadius:4 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{autoSkip:false,maxRotation:0,font:{size:10}} },
+        y:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{font:{size:10}, callback:v=>'R$'+Math.round(v)+'k'} }
+      }
+    }
+  });
+
+  const isPos = tLL >= 0;
+  const txt = isPos
+    ? `<strong>Situação favorável:</strong> Resultado líquido positivo de ${fmt(tLL)}. Margem bruta de ${mbp.toFixed(1)}% — ${mbp>55?'dentro':'abaixo'} do benchmark OPME (45–65%). Receita média: ${fmt(Math.round(tRB/na))}/mês. ${rw} mês(es) lucrativos.`
+    : `<strong>Atenção — resultado negativo:</strong> Déficit acumulado de ${fmt(Math.abs(tLL))}. Margem bruta ${mbp.toFixed(1)}%${mbp<45?' (abaixo do benchmark — revisar CMV/Motiva)':' (saudável, mas dreno financeiro consome o resultado)'}. Principal vetor: empréstimos + recompra (${fmt(Array.from({length:12},(_,i)=>dr(i,'r')).reduce((a,b)=>a+b,0))} no período). Ação imediata: reestruturação via FIDC de Saúde — economia estimada R$80–120k/mês.`;
+  document.getElementById('diagBlock').innerHTML = `<div class="diag ${isPos?'dpos':'dneg'}">${txt}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 13. FÓRMULAS
+// ═══════════════════════════════════════════════════════════════
+function renderFormulas() {
+  const items = [
+    {t:'Receita Líquida',               m:'RL = RB − Descontos − Glosas',                    d:'Receita bruta menos glosas e cancelamentos.'},
+    {t:'Margem Bruta (MB)',             m:'MB = RL − CMV − Motiva − Tributos',               d:'Sobra após todos os custos variáveis diretos.'},
+    {t:'Margem Bruta %',               m:'MB% = (MB ÷ RL) × 100',                           d:'Benchmark OPME ortopédico: 45–65%. Arcan: 59,92%.'},
+    {t:'Custo de Antecipação',          m:'C_ant = RB × Taxa_ant × %_antecipado',            d:'Ex: 3%/mês × 50% antecipado = 1,50% da receita.'},
+    {t:'MC Ponderada',                  m:'MC% = MB% − C_ant%',                              d:'Margem de contribuição líquida. Arcan: 50,49%.'},
+    {t:'EBITDA Caixa',                  m:'EBITDA = MB − Despesas Fixas',                    d:'Geração operacional antes do dreno financeiro.'},
+    {t:'Resultado Líquido (LL)',        m:'LL = EBITDA − Dreno Financeiro',                  d:'Dreno = Empréstimos pagos + Recompra de títulos.'},
+    {t:'Variação % Previsto/Real',      m:'Var% = ((Real − Prev) ÷ |Prev|) × 100',          d:'Positivo = acima do previsto. Negativo = abaixo.'},
+    {t:'Ponto de Equilíbrio (PE)',      m:'PE = Desp. Fixa Total ÷ MC Ponderada%',           d:'Faturamento mínimo para cobrir todos os custos.'},
+    {t:'Folga sobre PE',                m:'Folga = Faturamento Alvo − PE',                   d:'Negativa = empresa abaixo do PE — risco imediato.'},
+    {t:'Índice de Antecipação',         m:'%_Ant = (Receb. Antecipado ÷ RB) × 100',         d:'Meta: < 40%. Arcan Jan–Mai/26: 71,4%.'},
+    {t:'Dreno Financeiro %',            m:'%_Dreno = (Emp. + Recompra) ÷ RB × 100',         d:'Arcan: ~44,5% da receita comprometida com dívidas.'},
+    {t:'Geração de Caixa Acumulada',    m:'GCA = Σ LL_t  (t = 1 até n)',                    d:'Soma dos resultados líquidos do período.'},
+    {t:'PMR — Prazo Médio Recebimento', m:'PMR = Contas a Receber ÷ Receita Diária Média',  d:'Arcan: ~135 dias. Meta FIDC Saúde: < 90 dias.'},
+  ];
+  document.getElementById('formList').innerHTML = items.map(i=>
+    `<div class="fblock"><div class="ftitle">${i.t}</div><div class="fmath">${i.m}</div><div class="fdesc">${i.d}</div></div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 14. EXPORT / IMPORT BACKUP
+// ═══════════════════════════════════════════════════════════════
+
+// ── EXPORT ──────────────────────────────────────────────────────
+function exportBackup() {
+  const ts   = new Date();
+  const pad  = n => String(n).padStart(2,'0');
+  const date = `${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}`;
+  const time = `${pad(ts.getHours())}${pad(ts.getMinutes())}`;
+
+  const payload = {
+    _meta: {
+      app     : 'Arcan Dashboard Financeiro',
+      version : 'v5',
+      exported: ts.toISOString(),
+      label   : `Backup ${date} ${pad(ts.getHours())}:${pad(ts.getMinutes())}`,
+    },
+    data: D,
+  };
+
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `arcan_backup_${date}_${time}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('✓ Backup exportado com sucesso!', true);
+}
+
+// ── IMPORT MODAL STATE ──────────────────────────────────────────
+let pendingImport = null;   // holds parsed D after validation
+
+function openImport() {
+  pendingImport = null;
+  document.getElementById('fileInput').value       = '';
+  document.getElementById('impPreview').style.display  = 'none';
+  document.getElementById('impOk').style.display       = 'none';
+  document.getElementById('impErr').style.display      = 'none';
+  document.getElementById('btnConfirmImport').disabled = true;
+  document.getElementById('impDrop').classList.remove('drag');
+  document.getElementById('importBg').classList.add('show');
+}
+
+function closeImport() {
+  document.getElementById('importBg').classList.remove('show');
+  pendingImport = null;
+}
+
+// ── DRAG & DROP ─────────────────────────────────────────────────
+function dragOver(e)  { e.preventDefault(); document.getElementById('impDrop').classList.add('drag'); }
+function dragLeave(e) { document.getElementById('impDrop').classList.remove('drag'); }
+function dropFile(e)  {
+  e.preventDefault();
+  document.getElementById('impDrop').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) parseBackupFile(file);
+}
+
+function readFile(input) {
+  const file = input.files[0];
+  if (file) parseBackupFile(file);
+}
+
+// ── PARSE & VALIDATE ────────────────────────────────────────────
+function parseBackupFile(file) {
+  const okEl  = document.getElementById('impOk');
+  const errEl = document.getElementById('impErr');
+  okEl.style.display = 'none';
+  errEl.style.display = 'none';
+  document.getElementById('impPreview').style.display = 'none';
+  document.getElementById('btnConfirmImport').disabled = true;
+
+  if (!file.name.endsWith('.json')) {
+    showImportErr('Arquivo inválido. Selecione um arquivo .json exportado por este painel.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+
+      // Accept both formats: {_meta, data} or raw data object
+      const raw = (parsed._meta && parsed.data) ? parsed.data : parsed;
+
+      // Validate all expected keys exist and have 12 values
+      const missing = [];
+      DEFAULT.forEach(row => {
+        if (!Array.isArray(raw[row.k]) || raw[row.k].length !== 12) missing.push(row.l);
+      });
+
+      if (missing.length > 0) {
+        showImportErr(`Arquivo incompleto. Linhas ausentes ou corrompidas: ${missing.slice(0,3).join(', ')}${missing.length>3?' e mais…':''}`);
+        return;
+      }
+
+      // Build clean copy
+      const newD = {};
+      DEFAULT.forEach(row => {
+        newD[row.k] = raw[row.k].map(v => parseFloat(v) || 0);
+      });
+
+      pendingImport = newD;
+
+      // Build preview table
+      const meta    = parsed._meta || {};
+      const previewRows = DEFAULT.slice(0, 6); // show first 6 rows as sample
+      const thead = `<tr style="background:#f0f4fc"><td style="font-weight:600">Linha (amostra)</td><td style="font-weight:600;text-align:right">Jan</td><td style="font-weight:600;text-align:right">Fev</td><td style="font-weight:600;text-align:right">Mar</td><td style="font-weight:600;text-align:right">Total</td></tr>`;
+      const rows = previewRows.map(row => {
+        const v = newD[row.k];
+        const tot = v.reduce((a,b)=>a+b,0);
+        return `<tr><td>${row.l}</td><td style="text-align:right">${v[0]}</td><td style="text-align:right">${v[1]}</td><td style="text-align:right">${v[2]}</td><td style="text-align:right;font-weight:600;color:#2E5FA3">${Math.round(tot).toLocaleString('pt-BR')}</td></tr>`;
+      }).join('');
+      document.getElementById('impTable').innerHTML = thead + rows;
+      document.getElementById('impPreview').style.display = 'block';
+
+      // Show success message
+      const exportedAt = meta.exported ? new Date(meta.exported).toLocaleString('pt-BR') : 'desconhecido';
+      showImportOk(`Arquivo válido! ${DEFAULT.length} linhas encontradas. Exportado em: ${exportedAt}`);
+      document.getElementById('btnConfirmImport').disabled = false;
+
+    } catch(err) {
+      showImportErr('Erro ao ler o arquivo: ' + err.message + '. Verifique se é um backup gerado por este painel.');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function showImportOk(msg)  {
+  const el = document.getElementById('impOk');
+  document.getElementById('impOkMsg').textContent = msg;
+  el.style.display = 'flex';
+  document.getElementById('impErr').style.display = 'none';
+}
+function showImportErr(msg) {
+  const el = document.getElementById('impErr');
+  document.getElementById('impErrMsg').textContent = msg;
+  el.style.display = 'flex';
+  document.getElementById('impOk').style.display = 'none';
+}
+
+// ── APPLY IMPORT ────────────────────────────────────────────────
+function confirmImport() {
+  if (!pendingImport) return;
+
+  // Apply to live data object
+  DEFAULT.forEach(row => { D[row.k] = [...pendingImport[row.k]]; });
+
+  // Persist to localStorage
+  if (HAS_LS) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(D)); } catch(e) {}
+  }
+
+  // Re-render everything
+  renderBase();
+  renderFC();
+  renderDRE();
+
+  closeImport();
+  setSaveBadge('saved');
+  showToast('✓ Backup importado e dados restaurados com sucesso!', true);
+  pendingImport = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 15. INIT
+// ═══════════════════════════════════════════════════════════════
+renderBase();
+renderFC();
+renderDRE();
+renderFormulas();
+
+// Show load status
+if (HAS_LS && localStorage.getItem(LS_KEY)) {
+  setSaveBadge('saved');
+  showToast('✓ Dados do último acesso carregados', true);
+} else if (!HAS_LS) {
+  setSaveBadge('unsaved');
+  showToast('⚠ localStorage indisponível — dados não serão persistidos', false);
+} else {
+  setSaveBadge('saved');
+}
+</script>
+</body>
+</html>
